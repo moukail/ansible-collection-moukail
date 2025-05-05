@@ -5,18 +5,18 @@
   when: ansible_os_family == 'Debian'
 
 - name: Downloading PHP {{ php_version }} sources
+  register: php_source
   ansible.builtin.get_url:
     url: "{{ php_tarball_url }}"
     dest: "/tmp/php-{{ php_version }}.tar.gz"
-  register: php_source
 
 - name: Unpacking PHP {{ php_version }}
-  #when: php_source.changed
+  when: php_source.changed
+  register: php_source_unpack
   ansible.builtin.unarchive:
     copy: no
     dest: ~/
     src: "{{ php_source.dest }}"
-  register: php_source_unpack
 
 - name: change PHP settings
   when: php_source_unpack.changed
@@ -45,18 +45,18 @@
 
 - name: Configuring PHP CLI source with custom modules
   when: php_source_unpack.changed
-  ansible.builtin.command: "./configure --sysconfdir={{ php_path }}/cli --with-config-file-path={{ php_path }}/cli \
+  register: php_cli_configure
+  ansible.builtin.shell: "./configure --sysconfdir={{ php_path }}/cli --with-config-file-path={{ php_path }}/cli \
       --with-config-file-scan-dir={{ php_path }}/cli/conf.d --disable-cgi --enable-cli {{ php_custom_modules }}"
   args:
     chdir: "{{ php_install_dir }}"
-  register: php_cli_configure
 
 - name: Installing PHP CLI {{ php_ver }}
   when: php_cli_configure.changed
+  register: php_cli_make
   ansible.builtin.shell: make -j$(nproc) > ../php_cli.log 2>&1 && make install
   args:
     chdir: "{{ php_install_dir }}"
-  register: php_cli_make
 
 - name: make copy of php file
   when: php_cli_make.changed
@@ -101,19 +101,19 @@
 
 - name: Configuring PHP FPM source with custom modules
   when: php_source_unpack.changed
-  ansible.builtin.command: "./configure --sysconfdir={{ php_path }}/fpm --with-config-file-path={{ php_path }}/fpm \
+  register: php_fpm_configure
+  ansible.builtin.shell: "./configure --sysconfdir={{ php_path }}/fpm --with-config-file-path={{ php_path }}/fpm \
       --with-config-file-scan-dir={{ php_path }}/fpm/conf.d --disable-cgi --disable-cli --enable-fpm \
       --with-fpm-user=nginx --with-fpm-group=nginx {{ php_custom_modules }}"
   args:
     chdir: "{{ php_install_dir }}"
-  register: php_fpm_configure
 
 - name: Installing PHP FPM {{ php_ver }}
   when: php_fpm_configure.changed
+  register: php_fpm_make
   ansible.builtin.shell: make -j$(nproc) && make install
   args:
     chdir: "{{ php_install_dir }}"
-  register: php_fpm_make
 
 - name: make copy of php-fpm file
   when: php_fpm_make.changed

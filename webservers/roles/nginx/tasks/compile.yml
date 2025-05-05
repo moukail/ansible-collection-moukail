@@ -28,21 +28,21 @@
     state: latest
 
 - name: Downloading NGINX sources
-  get_url:
+  register: nginx_source
+  ansible.builtin.get_url:
     url: "{{ nginx_tarball_url }}"
     dest: "/tmp/nginx-{{ nginx_ver }}.tar.gz"
-  register: nginx_source
 
 - name: Unpacking NGINX
-  unarchive:
+  when: nginx_source.changed
+  register: nginx_source_unpack
+  ansible.builtin.unarchive:
     copy: no
     dest: /tmp/
     src: "{{ nginx_source.dest }}"
-  when: nginx_source.changed
-  register: nginx_source_unpack
 
 - name: Configuring NGINX source with custom modules
-  command: "./configure --prefix=/usr --conf-path=/etc/nginx/nginx.conf.j2 --modules-path=/etc/nginx/modules --error-log-path=/var/log/nginx/error.log \
+  ansible.builtin.shell: "./configure --prefix=/usr --conf-path=/etc/nginx/nginx.conf.j2 --modules-path=/etc/nginx/modules --error-log-path=/var/log/nginx/error.log \
                 --pid-path=/var/run/nginx.pid --user=nginx --group=nginx --build=nginx20 --builddir=/usr/local \
                 --with-pcre --with-threads --with-file-aio --with-http_ssl_module --with-http_v2_module"
   args:

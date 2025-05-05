@@ -1,8 +1,4 @@
 ---
-- name: Show compile val
-  ansible.builtin.debug:
-    msg: "compile == {{ compile }}"
-
 - import_tasks: compile.yml
   when: compile == true
 - import_tasks: install.yml
