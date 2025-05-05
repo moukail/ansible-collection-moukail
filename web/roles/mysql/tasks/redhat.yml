@@ -1,0 +1,59 @@
+---
+- name: Add mysql repository
+  ansible.builtin.yum_repository:
+    name: mysql
+    description: mysql repository
+    baseurl: http://repo.mysql.com/yum/mysql-{{ mysql_ver }}-community/el/{{ ansible_distribution_major_version }}/x86_64/
+    gpgcheck: true
+    gpgkey: http://repo.mysql.com/RPM-GPG-KEY-mysql-2023
+
+- name: Installing mysql
+  ansible.builtin.yum:
+    name: [python3-PyMySQL, mysql-community-server]
+    update_cache: yes
+    state: latest
+
+#- name: Install python packages
+#  ansible.builtin.pip:
+#    name: PyMySQL # python3-cryptography, python3-pexpect
+
+- name: stop mysql server
+  ansible.builtin.systemd:
+    name: mysqld.service
+    state: stopped
+    enabled: yes
+
+- name: the following command which will allow the database to start without loading the grant tables or networking.
+  command: systemctl set-environment MYSQLD_OPTS="--skip-grant-tables --skip-networking"
+
+- name: start mysql Server
+  systemd:
+    name: mysqld.service
+    state: started
+    enabled: yes
+
+- name: Set root password
+  command: mysql -u root -e "FLUSH PRIVILEGES; ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ db_root_password }}'; FLUSH PRIVILEGES;"
+
+- name: Create root@%
+  command: mysql -u root -p{{ db_root_password }} -e "FLUSH PRIVILEGES; CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '{{ db_root_password }}'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+- name: Revert the environment settings to allow the database to start with grant tables and networking
+  command: systemctl unset-environment MYSQLD_OPTS
+
+- name: Restart MySQL Server
+  systemd:
+    name: mysqld.service
+    state: restarted
+    enabled: yes
+
+- name: Create a new db user
+  mysql_user:
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    name: ismail
+    host: "%"
+    plugin_auth_string: "{{ db_root_password }}"
+    plugin: caching_sha2_password
+    state: present
+    priv: '*.*:ALL,GRANT'

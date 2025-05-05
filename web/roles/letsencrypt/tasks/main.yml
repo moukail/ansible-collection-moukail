@@ -1,0 +1,34 @@
+---
+- name: Installing epel - RedHat
+  when: ansible_distribution in ["RedHat", "Rocky", "AlmaLinux"] and ansible_distribution_version >= "8"
+  ansible.builtin.yum:
+    name: epel-release
+    update_cache: yes
+    state: latest
+
+- name: Installing certbot - RedHat
+  when: ansible_os_family == "RedHat" and ansible_distribution != "OracleLinux"
+  ansible.builtin.yum:
+    name: certbot
+    update_cache: yes
+    state: latest
+
+- name: Installing certbot - OracleLinux
+  when: ansible_distribution == "OracleLinux"
+  ansible.builtin.pip:
+    name: certbot
+
+- name: Installing certbot - Debian
+  when: ansible_os_family == "Debian"
+  ansible.builtin.apt:
+    name: certbot
+    update_cache: yes
+    state: latest
+
+- name: Add letsencrypt cronjob for cert renewal
+  ansible.builtin.cron:
+    name: "Renew Let's Encrypt certificates"
+    user: "root"
+    special_time: monthly
+    job: "certbot renew"
+    state: present

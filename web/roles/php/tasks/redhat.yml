@@ -1,0 +1,38 @@
+---
+- name: Install PHP oniguruma Dependencies - {{ ansible_distribution }} {{ ansible_distribution_version }}
+  when: ansible_distribution in ["AlmaLinux", "CentOS", "Rocky"] and ansible_distribution_version >= "9"
+  ansible.builtin.yum:
+    name: [ oniguruma-devel, libzip-devel ]
+    enablerepo: crb
+    update_cache: yes
+    state: latest
+
+- name: Install PHP oniguruma-devel - Fedora & Amazon {{ ansible_distribution_version }}
+  when: ansible_distribution in ["Fedora", "Amazon"]
+  ansible.builtin.yum:
+    name: [ oniguruma-devel, libzip-devel ]
+    update_cache: yes
+    state: latest
+
+- name: Install PHP oniguruma-devel - OracleLinux {{ ansible_distribution_version }}
+  when: ansible_distribution == "OracleLinux" and ansible_distribution_version >= "9"
+  ansible.builtin.yum:
+    name: [ oniguruma-devel, libzip-devel ]
+    enablerepo: ol9_codeready_builder
+    update_cache: yes
+    state: latest
+
+#https://yum.oracle.com/repo/OracleLinux/OL9/developer/EPEL/x86_64/getPackage/libsodium-devel-1.0.18-8.el9.x86_64.rpm
+- name: Install PHP libsodium-devel - OracleLinux {{ ansible_distribution_version }}
+  when: ansible_distribution == "OracleLinux" and ansible_distribution_version >= "9"
+  ansible.builtin.yum:
+    name: '*'
+    enablerepo: ol9_developer_EPEL
+    update_cache: yes
+    state: latest
+
+- name: Install PHP Dependencies - RedHat
+  ansible.builtin.yum:
+    name: [ libxml2-devel, sqlite-devel, libcurl-devel, gd-devel, libsodium-devel ]
+    update_cache: yes
+    state: latest

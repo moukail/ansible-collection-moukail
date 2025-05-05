@@ -1,0 +1,14 @@
+---
+- name: Installing Nginx redhat
+  when: ansible_os_family|lower == 'redhat'
+  ansible.builtin.yum:
+    name: nginx
+    update_cache: yes
+    state: latest
+
+- name: Installing Nginx debian
+  when: ansible_os_family|lower == 'debian'
+  ansible.builtin.apt:
+    name: nginx
+    update_cache: yes
+    state: latest

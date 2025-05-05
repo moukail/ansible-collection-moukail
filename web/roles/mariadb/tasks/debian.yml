@@ -1,0 +1,47 @@
+---
+- name: signing key
+  apt_key:
+    url: https://mariadb.org/mariadb_release_signing_key.asc
+    state: present
+
+- name: Add Debian repository into sources list
+  apt_repository:
+    repo: deb https://deb.mariadb.org/{{ mariadb_ver }}/debian {{ ansible_distribution_release }} main
+    update_cache: yes
+    state: present
+  when:
+    - ansible_distribution == "Debian"
+
+- name: Add Ubuntu repository into sources list
+  apt_repository:
+    repo: deb https://deb.mariadb.org/{{ mariadb_ver }}/ubuntu {{ ansible_distribution_release }} main
+    update_cache: yes
+    state: present
+  when:
+    - ansible_distribution == "Ubuntu"
+
+- name: Installing mariadb server
+  apt:
+    name: [mariadb-server, python3-pymysql, python3-cryptography, python3-pexpect]
+    update_cache: yes
+    state: latest
+
+- name: set bind-address
+  shell: |
+    sed -i 's|bind-address|#bind-address|' /etc/mysql/mariadb.conf.d/50-server.cnf
+
+- name: Restart MySQL Server
+  systemd:
+    name: mysql.service
+    state: restarted
+    enabled: yes
+
+- name: Create a new db user
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    login_user: root
+    name: root
+    host: "%"
+    password: "{{ db_root_password }}"
+    state: present
+    priv: '*.*:ALL,GRANT'

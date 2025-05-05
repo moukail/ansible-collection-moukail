@@ -1,0 +1,91 @@
+---
+- name: Installing dependencies for Redhat
+  when: ansible_os_family|lower == 'redhat'
+  ansible.builtin.yum:
+    name: [gcc-c++, make]
+    update_cache: yes
+    state: latest
+
+- name: Installing dependencies for Debian
+  when: ansible_os_family|lower == 'debian'
+  ansible.builtin.apt:
+    name: [gcc, g++, make]
+    update_cache: yes
+    state: present
+
+- name: Installing Nginx Dependencies redhat
+  when: ansible_os_family|lower == 'redhat'
+  ansible.builtin.yum:
+    name: [ 'libxslt-devel', 'libxml2-devel', 'gd-devel' ]
+    update_cache: yes
+    state: latest
+
+- name: Installing Nginx Dependencies debian
+  when: ansible_os_family|lower == 'debian'
+  ansible.builtin.apt:
+    name: ['libxml2-dev', 'libgd-dev', libssl-dev, 'libxslt1-dev', 'libpcre2-dev']
+    update_cache: yes
+    state: latest
+
+- name: Downloading NGINX sources
+  get_url:
+    url: "{{ nginx_tarball_url }}"
+    dest: "/tmp/nginx-{{ nginx_ver }}.tar.gz"
+  register: nginx_source
+
+- name: Unpacking NGINX
+  unarchive:
+    copy: no
+    dest: /tmp/
+    src: "{{ nginx_source.dest }}"
+  when: nginx_source.changed
+  register: nginx_source_unpack
+
+- name: Configuring NGINX source with custom modules
+  command: "./configure --prefix=/usr --conf-path=/etc/nginx/nginx.conf.j2 --modules-path=/etc/nginx/modules --error-log-path=/var/log/nginx/error.log \
+                --pid-path=/var/run/nginx.pid --user=nginx --group=nginx --build=nginx20 --builddir=/usr/local \
+                --with-pcre --with-threads --with-file-aio --with-http_ssl_module --with-http_v2_module"
+  args:
+    chdir: "{{ nginx_source_unpack.dest }}/nginx-{{ nginx_ver }}"
+  when: nginx_source_unpack.changed
+  register: nginx_configure
+
+- name: Installing NGINX
+  ansible.builtin.shell: make -j$(nproc) && make install
+  args:
+    chdir: "{{ nginx_source_unpack.dest }}/nginx-{{ nginx_ver }}"
+  when: nginx_configure.changed
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d
+    state: directory
+
+- name: Creating proxy_params file
+  ansible.builtin.copy:
+    src: proxy_params.conf
+    dest: /etc/nginx/proxy_params
+
+- name: Creating NGINX conf file
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+
+- name: copy default website
+  ansible.builtin.copy:
+    src: public
+    dest: /var/www/default
+
+- name: copy default website
+  ansible.builtin.copy:
+    src: default.conf
+    dest: /etc/nginx/conf.d
+
+- name: Installing NGINX init script (service)
+  notify: Restart Nginx
+  ansible.builtin.copy:
+    src: nginx.service
+    dest: /usr/lib/systemd/system/nginx.service
+    owner: root
+    group: root
+    mode: 0755

@@ -1,0 +1,6 @@
+---
+- name: Restart PHP-FPM
+  systemd:
+    name: php{{ php_ver }}-fpm.service
+    state: restarted
+    enabled: yes

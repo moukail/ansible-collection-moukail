@@ -1,0 +1,6 @@
+---
+- name: Installing PHP Dependencies
+  ansible.builtin.apt:
+    name: [libxml2-dev, libgd-dev, autoconf, libsodium-dev,  libonig-dev, libcurl4-openssl-dev, libsqlite3-dev, libzip-dev ]
+    update_cache: yes
+    state: latest

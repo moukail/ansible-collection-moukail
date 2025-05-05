@@ -1,0 +1,69 @@
+---
+#- name: Set version based on OS
+#  set_fact:
+#    mariadb_ver: "{{ '11.2' if ansible_distribution == 'Amazon' else '11.4' }}"
+
+- name: Add mysql repository
+  yum_repository:
+    name: mariadb
+    description: mariadb repository
+    baseurl: "https://rpm.mariadb.org/{{ mariadb_ver }}/rhel/{{ ansible_distribution_major_version }}/{{ ansible_architecture }}"
+    gpgcheck: true
+    gpgkey: https://rpm.mariadb.org/RPM-GPG-KEY-MariaDB
+
+- name: Installing dependencies
+  when: ansible_distribution == "Amazon"
+  yum:
+    name: liburing-devel
+    update_cache: yes
+    state: latest
+
+- name: Installing mariadb
+  yum:
+    name: MariaDB-server
+    update_cache: yes
+    state: latest
+
+- name: Install python packages
+  pip:
+    name: PyMySQL  #python3-cryptography, python3-pexpect
+
+- name: stop mariadb Server
+  systemd:
+    name: mariadb.service
+    state: stopped
+    enabled: yes
+
+- name: the following command which will allow the database to start without loading the grant tables or networking.
+  command: systemctl set-environment MYSQLD_OPTS="--skip-grant-tables --skip-networking"
+
+- name: start mariadb Server
+  systemd:
+    name: mariadb.service
+    state: started
+    enabled: yes
+
+- name: Set root password
+  command: mysql -u root -e "FLUSH PRIVILEGES; ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ db_root_password }}'; FLUSH PRIVILEGES;"
+
+- name: Create root@%
+  command: mysql -u root -p{{ db_root_password }} -e "FLUSH PRIVILEGES; CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '{{ db_root_password }}'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+- name: Revert the environment settings to allow the database to start with grant tables and networking
+  command: systemctl unset-environment MYSQLD_OPTS
+
+- name: Restart mariadb server
+  systemd:
+    name: mariadb.service
+    state: restarted
+    enabled: yes
+
+- name: Create a new db user
+  mysql_user:
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    name: ismail
+    host: "%"
+    password: "{{ db_root_password }}"
+    state: present
+    priv: '*.*:ALL,GRANT'

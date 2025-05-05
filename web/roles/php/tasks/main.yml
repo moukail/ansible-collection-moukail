@@ -1,0 +1,193 @@
+---
+- include_tasks: redhat.yml
+  when: ansible_os_family == 'RedHat'
+- include_tasks: debian.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Downloading PHP {{ php_version }} sources
+  ansible.builtin.get_url:
+    url: "{{ php_tarball_url }}"
+    dest: "/tmp/php-{{ php_version }}.tar.gz"
+  register: php_source
+
+- name: Unpacking PHP {{ php_version }}
+  #when: php_source.changed
+  ansible.builtin.unarchive:
+    copy: no
+    dest: ~/
+    src: "{{ php_source.dest }}"
+  register: php_source_unpack
+
+- name: change PHP settings
+  when: php_source_unpack.changed
+  ansible.builtin.shell: |
+    sed -i '/^memory_limit*/ s|128M|-1|' {{ php_install_dir }}/php.ini-production
+    sed -i 's|;date.timezone =|date.timezone = Europe/Amsterdam|' {{ php_install_dir }}/php.ini-production
+    sed -i 's|pdo_mysql.default_socket=|pdo_mysql.default_socket = /var/run/mysqld/mysqld.sock|' {{ php_install_dir }}/php.ini-production
+
+#- name: memory_limit
+#  lineinfile:
+#    path: "{{ php_install_dir }}/php.ini-production"
+#    regexp: '^memory_limit ='
+#    line: memory_limit = -1
+
+#- name: timezone
+#  lineinfile:
+#    path: "{{ php_install_dir }}/php.ini-production"
+#    regexp: '^;date.timezone ='
+#    line: date.timezone = Europe/Amsterdam
+
+#- name: pdo_mysql
+#  lineinfile:
+#    path: "{{ php_install_dir }}/php.ini-production"
+#    regexp: '^pdo_mysql.default_socket='
+#    line: pdo_mysql.default_socket = /var/run/mysqld/mysqld.sock
+
+- name: Configuring PHP CLI source with custom modules
+  when: php_source_unpack.changed
+  ansible.builtin.command: "./configure --sysconfdir={{ php_path }}/cli --with-config-file-path={{ php_path }}/cli \
+      --with-config-file-scan-dir={{ php_path }}/cli/conf.d --disable-cgi --enable-cli {{ php_custom_modules }}"
+  args:
+    chdir: "{{ php_install_dir }}"
+  register: php_cli_configure
+
+- name: Installing PHP CLI {{ php_ver }}
+  when: php_cli_configure.changed
+  ansible.builtin.shell: make -j$(nproc) > ../php_cli.log 2>&1 && make install
+  args:
+    chdir: "{{ php_install_dir }}"
+  register: php_cli_make
+
+- name: make copy of php file
+  when: php_cli_make.changed
+  ansible.builtin.copy:
+    src: /usr/bin/php
+    dest: /usr/bin/php{{ php_ver }}
+    remote_src: yes
+    mode: 0755
+
+- name: remove php file
+  when: php_cli_make.changed
+  ansible.builtin.file:
+    path: /usr/bin/php
+    state: absent
+
+- name: make php symlink
+  when: php_cli_make.changed
+  ansible.builtin.file:
+    src: /usr/bin/php{{ php_ver }}
+    dest: /usr/bin/php
+    state: link
+
+- name: Create conf directory
+  ansible.builtin.file:
+    path: "{{ php_path }}/cli/conf.d"
+    state: directory
+
+- name: set PHP CLI ini
+  when: php_cli_make.changed
+  #shell: cp php.ini-production {{ php_path }}/cli/php.ini
+  ansible.builtin.copy:
+    src: "{{ php_install_dir }}/php.ini-production"
+    dest: "{{ php_path }}/cli/php.ini"
+    remote_src: yes
+    mode: 0755
+
+- name: Set date.timezone for CLI
+  ansible.builtin.lineinfile:
+    dest: "{{ php_path }}/cli/php.ini"
+    regexp: "date.timezone ="
+    line: "date.timezone = UTC"
+
+- name: Configuring PHP FPM source with custom modules
+  when: php_source_unpack.changed
+  ansible.builtin.command: "./configure --sysconfdir={{ php_path }}/fpm --with-config-file-path={{ php_path }}/fpm \
+      --with-config-file-scan-dir={{ php_path }}/fpm/conf.d --disable-cgi --disable-cli --enable-fpm \
+      --with-fpm-user=nginx --with-fpm-group=nginx {{ php_custom_modules }}"
+  args:
+    chdir: "{{ php_install_dir }}"
+  register: php_fpm_configure
+
+- name: Installing PHP FPM {{ php_ver }}
+  when: php_fpm_configure.changed
+  ansible.builtin.shell: make -j$(nproc) && make install
+  args:
+    chdir: "{{ php_install_dir }}"
+  register: php_fpm_make
+
+- name: make copy of php-fpm file
+  when: php_fpm_make.changed
+  ansible.builtin.copy:
+    src: /usr/sbin/php-fpm
+    dest: /usr/sbin/php{{ php_ver }}-fpm
+    remote_src: yes
+    mode: 0755
+
+- name: remove php-fpm file
+  when: php_fpm_make.changed
+  ansible.builtin.file:
+    path: /usr/sbin/php-fpm
+    state: absent
+
+- name: make php-fpm symlink
+  when: php_fpm_make.changed
+  ansible.builtin.file:
+    src: /usr/sbin/php{{ php_ver }}-fpm
+    dest: /usr/sbin/php-fpm
+    state: link
+
+- name: set PHP FPM ini
+  when: php_fpm_make.changed
+  #shell: cp php.ini-production {{ php_path }}/fpm/php.ini
+  ansible.builtin.copy:
+    src: "{{ php_install_dir }}/php.ini-production"
+    dest: "{{ php_path }}/fpm/php.ini"
+    remote_src: yes
+    mode: 0755
+
+- name: Create dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+  loop:
+    - "/var/run/php"
+    - "{{ php_path }}/fpm/conf.d"
+    - "{{ php_path }}/fpm/pool.d"
+
+- name: set PHP FPM ini
+  when: php_fpm_make.changed
+  ansible.builtin.shell: |
+    sed -i "s|;pid = run/php-fpm.pid|pid = /var/run/php/php{{ php_ver }}-fpm.pid|" sapi/fpm/php-fpm.conf
+    sed -i "s|;error_log = log/php-fpm.log|error_log = /var/log/php{{ php_ver }}-fpm.log|" sapi/fpm/php-fpm.conf
+    sed -i "s|include={{ php_path }}/fpm/php-fpm.d|include={{ php_path }}/fpm/pool.d|" sapi/fpm/php-fpm.conf
+    sed -i "/^listen*/ s|127.0.0.1:9000|/var/run/php/php{{ php_ver }}-fpm.sock|" sapi/fpm/php-fpm.conf
+    sed -i 's|;listen.owner|listen.owner|' sapi/fpm/php-fpm.conf
+    sed -i 's|;listen.group|listen.group|' sapi/fpm/php-fpm.conf
+    cp sapi/fpm/php-fpm.conf {{ php_path }}/fpm/php-fpm.conf
+
+    sed -i "/^listen*/ s|127.0.0.1:9000|/var/run/php/php{{ php_ver }}-fpm.sock|" sapi/fpm/www.conf
+    sed -i 's|;listen.owner|listen.owner|' sapi/fpm/www.conf
+    sed -i 's|;listen.group|listen.group|' sapi/fpm/www.conf
+    cp sapi/fpm/www.conf {{ php_path }}/fpm/pool.d/www.conf
+
+    sed -i 's|PIDFile=/usr/var/run/php-fpm.pid|PIDFile=/usr/var/run/php/php{{ php_ver }}-fpm.pid|' ./sapi/fpm/php-fpm.service
+    sed -i 's|ExecStart=/usr/sbin/php-fpm|ExecStart=/usr/sbin/php{{ php_ver }}-fpm|' ./sapi/fpm/php-fpm.service
+    cp -v ./sapi/fpm/php-fpm.service /usr/lib/systemd/system/php{{ php_ver }}-fpm.service
+
+  args:
+    chdir: "{{ php_install_dir }}"
+
+- name: Remove php dir
+  ansible.builtin.file:
+    path: "{{ php_install_dir }}"
+    state: absent
+
+- name: Creating opcache file for fpm
+  notify: Restart PHP-FPM
+  ansible.builtin.copy:
+    src: opcache.ini
+    dest: "{{ php_path }}/fpm/conf.d/opcache.ini"
+
+#- include: ./redis.yml
+#- include: ./amqp.yml
