@@ -1,3 +1,5 @@
-# Ansible Collection - moukail.webservers
-
-Documentation for the collection.
+| Role       | rocky 9  | oracle 9 | alma 9   | rhel9    | centos9s| centos 10 | debian 12 |
+|------------|----------|----------|----------|----------|----------|-----------|----------|
+| Mysql      | ✔️ | &#9989;  | &#10004; | &#10060; | &#10004; | &#10004;  |
+| Posrgresql |          |          |          |          |          |
+| Mariadb    |          |          |          |          |          |

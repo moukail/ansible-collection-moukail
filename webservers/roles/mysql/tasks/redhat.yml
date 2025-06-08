@@ -1,21 +1,28 @@
 ---
+# https://repo.mysql.com/mysql84-community-release-fc42-1.noarch.rpm
+# https://repo.mysql.com/mysql84-community-release-el9-1.noarch.rpm
+
+- name: Installing dependencies
+  ansible.builtin.dnf:
+    name: gnupg
+    update_cache: yes
+    state: present
+
+- name: Import MySQL GPG key
+  ansible.builtin.rpm_key:
+    key: https://repo.mysql.com/RPM-GPG-KEY-mysql-2023
+    state: present
+
 - name: Add mysql repository
-  ansible.builtin.yum_repository:
-    name: mysql
-    description: mysql repository
-    baseurl: http://repo.mysql.com/yum/mysql-{{ mysql_ver }}-community/el/{{ ansible_distribution_major_version }}/x86_64/
-    gpgcheck: true
-    gpgkey: http://repo.mysql.com/RPM-GPG-KEY-mysql-2023
+  ansible.builtin.dnf:
+    name: https://repo.mysql.com/mysql84-community-release-el9-1.noarch.rpm
+    state: present
 
 - name: Installing mysql
-  ansible.builtin.yum:
-    name: [python3-PyMySQL, mysql-community-server]
+  ansible.builtin.dnf:
+    name: [python3-PyMySQL, python3-cryptography, mysql-community-server]
     update_cache: yes
     state: latest
-
-#- name: Install python packages
-#  ansible.builtin.pip:
-#    name: PyMySQL # python3-cryptography, python3-pexpect
 
 - name: stop mysql server
   ansible.builtin.systemd:

@@ -1,7 +1,7 @@
 ---
 - name: Installing dependencies for Redhat
   when: ansible_os_family|lower == 'redhat'
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: [gcc-c++, make]
     update_cache: yes
     state: latest
@@ -15,7 +15,7 @@
 
 - name: Installing Nginx Dependencies redhat
   when: ansible_os_family|lower == 'redhat'
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: [ 'libxslt-devel', 'libxml2-devel', 'gd-devel' ]
     update_cache: yes
     state: latest

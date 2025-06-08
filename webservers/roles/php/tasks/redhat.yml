@@ -1,7 +1,7 @@
 ---
 - name: Install PHP oniguruma Dependencies - {{ ansible_distribution }} {{ ansible_distribution_version }}
   when: ansible_distribution in ["AlmaLinux", "CentOS", "Rocky"] and ansible_distribution_version >= "9"
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: [ oniguruma-devel, libzip-devel ]
     enablerepo: crb
     update_cache: yes
@@ -9,14 +9,14 @@
 
 - name: Install PHP oniguruma-devel - Fedora & Amazon {{ ansible_distribution_version }}
   when: ansible_distribution in ["Fedora", "Amazon"]
-  ansible.builtin.yum:
-    name: [ oniguruma-devel, libzip-devel ]
+  ansible.builtin.dnf:
+    name: [ python3-libdnf5, oniguruma-devel, libzip-devel ]
     update_cache: yes
     state: latest
 
 - name: Install PHP oniguruma-devel - OracleLinux {{ ansible_distribution_version }}
   when: ansible_distribution == "OracleLinux" and ansible_distribution_version >= "9"
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: [ oniguruma-devel, libzip-devel ]
     enablerepo: ol9_codeready_builder
     update_cache: yes
@@ -25,14 +25,32 @@
 #https://yum.oracle.com/repo/OracleLinux/OL9/developer/EPEL/x86_64/getPackage/libsodium-devel-1.0.18-8.el9.x86_64.rpm
 - name: Install PHP libsodium-devel - OracleLinux {{ ansible_distribution_version }}
   when: ansible_distribution == "OracleLinux" and ansible_distribution_version >= "9"
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: '*'
     enablerepo: ol9_developer_EPEL
     update_cache: yes
     state: latest
 
-- name: Install PHP Dependencies - RedHat
-  ansible.builtin.yum:
-    name: [ libxml2-devel, sqlite-devel, libcurl-devel, gd-devel, libsodium-devel ]
+- name: Import MySQL GPG key
+  ansible.builtin.rpm_key:
+    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
+    state: present
+
+- name: Add Everything repository for libsodium-devel
+  when: ansible_distribution in ["AlmaLinux", "CentOS", "Rocky"] and ansible_distribution_version >= "9"
+  ansible.builtin.dnf:
+    #name: https://dl.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/e/epel-release-9-10.el9.noarch.rpm
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+    state: present
+
+- name: Installing dependencies for Redhat
+  ansible.builtin.dnf:
+    name: [gcc-c++, make]
+    update_cache: yes
+    state: latest
+
+- name: Install PHP Dependencies - {{ ansible_distribution }} {{ ansible_distribution_version }}
+  ansible.builtin.dnf:
+    name: [ libxml2-devel, sqlite-devel, libcurl-devel, gd-devel, libsodium-devel, openssl-devel ]
     update_cache: yes
     state: latest

@@ -1,4 +1,11 @@
 ---
+- name: Installing dependencies for Debian
+  when: ansible_os_family|lower == 'debian'
+  ansible.builtin.apt:
+    name: [gcc, g++, make, libssl-dev, pkg-config]
+    update_cache: yes
+    state: present
+
 - name: Installing PHP Dependencies
   ansible.builtin.apt:
     name: [libxml2-dev, libgd-dev, autoconf, libsodium-dev,  libonig-dev, libcurl4-openssl-dev, libsqlite3-dev, libzip-dev ]
