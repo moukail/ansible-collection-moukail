@@ -1,19 +1,26 @@
 ---
+- name: Ensure gpg2 is installed
+  ansible.builtin.dnf:
+    name: gnupg2
+    state: present
+    update_cache: yes
+
 - name: Import a key from a url
   ansible.builtin.rpm_key:
     state: present
     key: https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL
 
 - name: Install the PostgreSQL Yum repository
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm
     state: present
 
 - name: Disable built-in PostgreSQL module
+  when: ansible_distribution_major_version is version('9', '<=')
   ansible.builtin.shell: dnf -qy module disable postgresql
 
 - name: Install PostgreSQL
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: [python3-psycopg2, "postgresql{{ postgresql_ver }}", "postgresql{{ postgresql_ver }}-server"]
     update_cache: yes
     state: latest
@@ -26,3 +33,17 @@
     name: "postgresql-{{ postgresql_ver }}.service"
     state: started
     enabled: yes
+
+#- name: Create PostgreSQL user
+#  become: true
+#  become_user: postgres
+#  community.general.postgresql_user:
+#    name: "{{ postgres_user }}"
+#    password: "{{ postgres_password }}"
+
+#- name: Create PostgreSQL database
+#  become: true
+#  become_user: postgres
+#  community.general.postgresql_db:
+#    name: "{{ postgres_db }}"
+#    owner: "{{ postgres_user }}"

@@ -1,7 +1,7 @@
 ---
 - name: Installing dependencies for Debian
   ansible.builtin.apt:
-    name: [gnupg]
+    name: gnupg
     update_cache: yes
     state: present
 

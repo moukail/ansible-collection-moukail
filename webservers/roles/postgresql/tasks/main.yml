@@ -4,16 +4,5 @@
 - include_tasks: debian.yml
   when: ansible_os_family == 'Debian'
 
-- name: Create PostgreSQL user
-  become: true
-  become_user: postgres
-  community.general.postgresql_user:
-    name: "{{ postgres_user }}"
-    password: "{{ postgres_password }}"
-
-- name: Create PostgreSQL database
-  become: true
-  become_user: postgres
-  community.general.postgresql_db:
-    name: "{{ postgres_db }}"
-    owner: "{{ postgres_user }}"
+- name: Set password for the default PostgreSQL user
+  ansible.builtin.command: sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '{{ postgres_password }}';"

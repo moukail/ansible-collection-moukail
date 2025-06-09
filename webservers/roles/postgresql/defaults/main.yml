@@ -1,2 +1,5 @@
 ---
 postgresql_ver: 17
+postgres_user: root
+postgres_password: pass_1234
+postgres_db: mydb
