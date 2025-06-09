@@ -58,7 +58,7 @@
   community.mysql.mysql_user:
     login_user: root
     login_password: "{{ db_root_password }}"
-    name: ismail
+    name: root
     host: "%"
     plugin_auth_string: "{{ db_root_password }}"
     plugin: caching_sha2_password
