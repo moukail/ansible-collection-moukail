@@ -1,0 +1,8 @@
+---
+freeradius_ver: 3.2.6
+freeradius_tarball_url: ftp://ftp.freeradius.org/pub/freeradius/freeradius-server-{{ freeradius_ver }}.tar.gz
+db_type: mysql # mariadb #
+db_login_host: db.moukafih.nl
+radius_db_name: radius
+radius_db_user: radius
+radius_db_password: '!kIt#ZIN802E'
