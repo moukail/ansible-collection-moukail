@@ -1,0 +1,85 @@
+---
+- include_tasks: firewalld.yml
+  when: ansible_os_family == 'RedHat'
+
+- include_tasks: ufw.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Installing strongswan Dependencies
+  when: ansible_os_family == "RedHat"
+  ansible.builtin.dnf:
+    name: gmp-devel
+    update_cache: yes
+    state: latest
+
+- name: Installing strongswan Dependencies
+  when: ansible_os_family == "Debian"
+  ansible.builtin.apt:
+    name: libgmp-dev
+    update_cache: yes
+    state: latest
+
+- name: Downloading strongswan sources
+  ansible.builtin.get_url:
+    url: "{{ strongswan_tarball_url }}"
+    dest: "/tmp/strongswan-{{ strongswan_ver }}.tar.gz"
+  register: strongswan_source
+
+- name: Unpacking strongswan
+  #when: strongswan_source.changed
+  ansible.builtin.unarchive:
+    copy: no
+    dest: /tmp
+    src: "{{ strongswan_source.dest }}"
+  register: strongswan_source_unpack
+
+- name: Configuring strongswan source with custom modules
+  #when: strongswan_source_unpack.changed
+  ansible.builtin.command: './configure --prefix=/usr --sysconfdir=/etc --enable-openssl --enable-eap-identity --enable-eap-mschapv2 --enable-eap-radius --enable-eap-dynamic CFLAGS="-DDEBUG_LEVEL=1 -I/usr/include/openssl"'
+  args:
+    chdir: "{{ strongswan_source_unpack.dest }}/strongswan-{{ strongswan_ver }}"
+  register: strongswan_configure
+
+- name: Installing strongswan
+  #when: strongswan_configure.changed
+  ansible.builtin.shell: make -j$(nproc) && make install
+  args:
+    chdir: "{{ strongswan_source_unpack.dest }}/strongswan-{{ strongswan_ver }}"
+
+- name: Remove strongswan dir in tmp
+  ansible.builtin.file:
+    path: "{{ strongswan_source_unpack.dest }}/strongswan-{{ strongswan_ver }}"
+    state: absent
+
+- name: Creating eap-radius.conf file
+  ansible.builtin.copy:
+    src: eap-radius.conf
+    dest: /etc/strongswan.d/charon/eap-radius.conf
+
+- name: Creating ipsec conf file
+  template:
+    src: ipsec.conf
+    dest: /etc/ipsec.conf
+    mode: 0644
+
+- name: Creating ipsec secrets file
+  template:
+    src: ipsec.secrets
+    dest: /etc/ipsec.secrets
+
+- name: Installing freeRadius init script (service)
+  template:
+    src: strongswan-starter.service
+    dest: /usr/lib/systemd/system/strongswan-starter.service
+    owner: root
+    group: root
+    mode: 0755
+
+- include_tasks: letsencrypt.yml
+
+- name: Restart strongSwan
+  systemd:
+    name: strongswan-starter.service
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
