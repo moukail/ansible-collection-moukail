@@ -1,0 +1,42 @@
+---
+- name: Install UFW
+  apt:
+    name: ufw
+    update_cache: yes
+    state: latest
+
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Get the default internet-facing interface
+  set_fact:
+    internet_iface: "{{ ansible_default_ipv4.interface }}"
+
+- name: Add NAT masquerading rule with the dynamic interface
+  blockinfile:
+    path: /etc/ufw/before.rules
+    block: |
+      *nat
+      :POSTROUTING ACCEPT [0:0]
+      -A POSTROUTING -s 30.20.10.0/24 -o {{internet_iface}} -j MASQUERADE
+      COMMIT
+    insertafter: BOF   # Insert at the Beginning of File (BOF)
+
+- name: Change DEFAULT_FORWARD_POLICY to ACCEPT in /etc/default/ufw
+  lineinfile:
+    path: /etc/default/ufw
+    regexp: '^DEFAULT_FORWARD_POLICY="DROP"$'
+    line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
+    backup: yes
+
+- name: Allow UDP traffic on ports 500 and 4500 for IPsec and HTTP for letsencrypt
+  shell: |
+    ufw allow 500,4500/udp
+    ufw allow 80/tcp
+
+- name: Restart UFW service
+  shell: ufw reload

@@ -1,0 +1,25 @@
+---
+# /usr/lib/firewalld/services/ipsec.xml
+- name: add vpn port
+  firewalld:
+    zone: public
+    service: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items:
+    - http
+    - ipsec
+
+- name: enable access to internet
+  firewalld:
+    zone: public
+    masquerade: yes
+    permanent: yes
+    immediate: yes
+    state: enabled
+
+- name: restart service firewalld
+  systemd:
+    name: firewalld
+    state: restarted
