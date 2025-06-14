@@ -47,9 +47,9 @@
     src: /etc/raddb/mods-available/eap
     dest: /etc/raddb/mods-available/eap.bkp
     remote_src: yes
-    owner: root
-    group: root
-    mode: '0644'
+    #owner: root
+    #group: root
+    #mode: '0644'
     backup: yes
 
 - name: Installing eap.conf
@@ -68,9 +68,6 @@
     src: /etc/raddb/mods-available/sql
     dest: /etc/raddb/mods-available/sql.bkp
     remote_src: yes
-    owner: root
-    group: root
-    mode: '0644'
     backup: yes
 
 - name: Installing mysql.conf
@@ -104,6 +101,6 @@
   ansible.builtin.template:
     src: radiusd.service.j2
     dest: /usr/lib/systemd/system/radiusd.service
-    owner: root
-    group: root
-    mode: 0755
+    #owner: root
+    #group: root
+    #mode: 0755

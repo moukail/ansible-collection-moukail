@@ -1,21 +1,21 @@
 ---
 - name: Install crb dependencies
-  when: ansible_distribution in ["CentOS", "Rocky", "AlmaLinux"] and ansible_distribution_version >= "9"
+  when: ansible_distribution in ["CentOS", "Rocky", "AlmaLinux"] and (ansible_distribution_major_version is version('9', '>='))
   ansible.builtin.dnf:
-    name: '*' #[ 'libtalloc-devel', 'mysql-devel' ]
+    name: '*'
     enablerepo: crb
     state: present
 
 - name: Install codeready dependencies - OracleLinux
-  when: ansible_distribution == "OracleLinux" and ansible_distribution_version >= "9"
+  when: ansible_distribution == "OracleLinux" and (ansible_distribution_major_version is version('9', '>='))
   ansible.builtin.dnf:
-    name: '*' #[ 'libtalloc-devel', 'mysql-devel' ]
+    name: '*'
     enablerepo: ol9_codeready_builder
     state: present
 
 - name: Installing freeRadius Dependencies RedHat
   ansible.builtin.dnf:
-    name: ['libtalloc-devel', 'mysql-devel', '{{ db_type }}'] #'hiredis-devel'
+    name: [ 'libtalloc-devel', 'mysql-devel', '{{ db_type }}'] #'hiredis-devel'
     update_cache: yes
     state: latest
 
