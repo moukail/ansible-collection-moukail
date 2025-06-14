@@ -9,13 +9,13 @@
 - name: Install codeready dependencies - OracleLinux
   when: ansible_distribution == "OracleLinux" and (ansible_distribution_major_version is version('9', '>='))
   ansible.builtin.dnf:
-    name: '*'
+    name: libtalloc-devel
     enablerepo: ol9_codeready_builder
     state: present
 
 - name: Installing freeRadius Dependencies RedHat
   ansible.builtin.dnf:
-    name: [ 'libtalloc-devel', 'mysql-devel', '{{ db_type }}'] #'hiredis-devel'
+    name: ['mysql-devel', '{{ db_type }}'] #'hiredis-devel'
     update_cache: yes
     state: latest
 
