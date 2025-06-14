@@ -4,6 +4,20 @@
 - include_tasks: debian.yml
   when: ansible_os_family == 'Debian'
 
+- name: Ensure group "{{ user }}" exists
+  ansible.builtin.group:
+    name: "{{ user }}"
+    system: yes
+    state: present
+
+- name: Add the user "{{ user }}"
+  ansible.builtin.user:
+    name: "{{ user }}"
+    create_home: no
+    system: yes
+    state: present
+    group: "{{ user }}"
+
 - name: Downloading PHP {{ php_version }} sources
   register: php_source
   ansible.builtin.get_url:
@@ -104,7 +118,7 @@
   register: php_fpm_configure
   ansible.builtin.shell: "./configure --sysconfdir={{ php_path }}/fpm --with-config-file-path={{ php_path }}/fpm \
       --with-config-file-scan-dir={{ php_path }}/fpm/conf.d --disable-cgi --disable-cli --enable-fpm \
-      --with-fpm-user=nginx --with-fpm-group=nginx {{ php_custom_modules }}"
+      --with-fpm-user={{ user }} --with-fpm-group={{ user }} {{ php_custom_modules }}"
   args:
     chdir: "{{ php_install_dir }}"
 
@@ -158,20 +172,20 @@
 - name: set PHP FPM ini
   when: php_fpm_make.changed
   ansible.builtin.shell: |
-    sed -i "s|;pid = run/php-fpm.pid|pid = /var/run/php/php{{ php_ver }}-fpm.pid|" sapi/fpm/php-fpm.conf
+    sed -i "s|;pid = run/php-fpm.pid|pid = /var/run/php{{ php_ver }}-fpm.pid|" sapi/fpm/php-fpm.conf
     sed -i "s|;error_log = log/php-fpm.log|error_log = /var/log/php{{ php_ver }}-fpm.log|" sapi/fpm/php-fpm.conf
     sed -i "s|include={{ php_path }}/fpm/php-fpm.d|include={{ php_path }}/fpm/pool.d|" sapi/fpm/php-fpm.conf
-    sed -i "/^listen*/ s|127.0.0.1:9000|/var/run/php/php{{ php_ver }}-fpm.sock|" sapi/fpm/php-fpm.conf
+    sed -i "/^listen*/ s|127.0.0.1:9000|/var/run/php{{ php_ver }}-fpm.sock|" sapi/fpm/php-fpm.conf
     sed -i 's|;listen.owner|listen.owner|' sapi/fpm/php-fpm.conf
     sed -i 's|;listen.group|listen.group|' sapi/fpm/php-fpm.conf
     cp sapi/fpm/php-fpm.conf {{ php_path }}/fpm/php-fpm.conf
 
-    sed -i "/^listen*/ s|127.0.0.1:9000|/var/run/php/php{{ php_ver }}-fpm.sock|" sapi/fpm/www.conf
+    sed -i "/^listen*/ s|127.0.0.1:9000|/var/run/php{{ php_ver }}-fpm.sock|" sapi/fpm/www.conf
     sed -i 's|;listen.owner|listen.owner|' sapi/fpm/www.conf
     sed -i 's|;listen.group|listen.group|' sapi/fpm/www.conf
     cp sapi/fpm/www.conf {{ php_path }}/fpm/pool.d/www.conf
 
-    sed -i 's|PIDFile=/usr/var/run/php-fpm.pid|PIDFile=/usr/var/run/php/php{{ php_ver }}-fpm.pid|' ./sapi/fpm/php-fpm.service
+    sed -i 's|PIDFile=/usr/var/run/php-fpm.pid|PIDFile=/usr/var/run/php{{ php_ver }}-fpm.pid|' ./sapi/fpm/php-fpm.service
     sed -i 's|ExecStart=/usr/sbin/php-fpm|ExecStart=/usr/sbin/php{{ php_ver }}-fpm|' ./sapi/fpm/php-fpm.service
     cp -v ./sapi/fpm/php-fpm.service /usr/lib/systemd/system/php{{ php_ver }}-fpm.service
 

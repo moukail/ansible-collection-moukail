@@ -1,6 +1,6 @@
 ---
 - name: Restart PHP-FPM
-  systemd:
+  ansible.builtin.systemd:
     name: php{{ php_ver }}-fpm.service
     state: restarted
     enabled: yes
