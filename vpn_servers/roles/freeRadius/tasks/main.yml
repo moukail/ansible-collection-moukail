@@ -38,8 +38,8 @@
     state: absent
 
 - name: Installing clients.conf
-  ansible.builtin.copy:
-    src: clients.conf
+  ansible.builtin.template:
+    src: clients.conf.j2
     dest: /etc/raddb/clients.conf
 
 - name: backup eap mod
@@ -74,8 +74,8 @@
     backup: yes
 
 - name: Installing mysql.conf
-  ansible.builtin.copy:
-    src: mysql.conf
+  ansible.builtin.template:
+    src: mysql.conf.j2
     dest: /etc/raddb/mods-available/sql
 
 - name: enable sql mod
@@ -102,7 +102,7 @@
 - name: Installing freeRadius init script (service)
   notify: Restart freeRadius
   ansible.builtin.template:
-    src: radiusd.service
+    src: radiusd.service.j2
     dest: /usr/lib/systemd/system/radiusd.service
     owner: root
     group: root

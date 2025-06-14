@@ -7,11 +7,11 @@ sql {
 		warnings = yes
 	}
 
-	server = "db.moukafih.nl"
+	server = "{{ db_login_host }}"
 	port = 3306
-	login = "radius"
-	password = "!kIt#ZIN802E"
-	radius_db = "radius"
+	login = "{{ radius_db_user }}"
+	password = "{{ radius_db_password }}"
+	radius_db = "{{ radius_db_name }}"
 	acct_table1 = "radacct"
 	acct_table2 = "radacct"
 	postauth_table = "radpostauth"

@@ -13,7 +13,7 @@
 
 - name: Create a new database with name 'radius'
   when: (db_login_host is defined) and (db_login_host|length > 0)
-  mysql_db:
+  community.mysql.mysql_db:
     login_host: "{{ db_login_host }}"
     login_user: root
     login_password: "{{ db_root_password }}"
@@ -22,7 +22,7 @@
 
 - name: Create a new user with name 'radius'
   when: db_type == "mariadb"
-  mysql_user:
+  community.mysql.mysql_user:
     login_host: "{{ db_login_host }}"
     login_password: "{{ db_root_password }}"
     name: "{{ radius_db_name }}"
@@ -33,7 +33,7 @@
 
 - name: Create a new user with name 'radius'
   when: db_type == "mysql"
-  mysql_user:
+  community.mysql.mysql_user:
     login_host: "{{ db_login_host }}"
     login_password: "{{ db_root_password }}"
     name: "{{ radius_db_name }}"
@@ -45,7 +45,7 @@
 
 - name: Restore database
   when: ansible_distribution != "OracleLinux"
-  mysql_db:
+  community.mysql.mysql_db:
     login_host: "{{ db_login_host }}"
     login_user: root
     login_password: "{{ db_root_password }}"
@@ -60,7 +60,7 @@
 
 - name: Run several insert queries against db test_db in single transaction
   when: (db_login_host is defined) and (db_login_host|length > 0)
-  mysql_query:
+  community.mysql.mysql_query:
     login_host: "{{ db_login_host }}"
     login_user: "{{ radius_db_user }}"
     login_password: "{{ radius_db_password }}"
