@@ -2,7 +2,7 @@
 - name: Install crb dependencies
   when: ansible_distribution in ["CentOS", "Rocky", "AlmaLinux"] and (ansible_distribution_major_version is version('9', '>='))
   ansible.builtin.dnf:
-    name: '*'
+    name: libtalloc-devel
     enablerepo: crb
     state: present
 
