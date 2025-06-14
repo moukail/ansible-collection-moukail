@@ -27,6 +27,20 @@
     update_cache: yes
     state: latest
 
+- name: Ensure group "{{ user }}" exists
+  ansible.builtin.group:
+    name: "{{ user }}"
+    system: yes
+    state: present
+
+- name: Add the user "{{ user }}"
+  ansible.builtin.user:
+    name: "{{ user }}"
+    create_home: no
+    system: yes
+    state: present
+    group: "{{ user }}"
+
 - name: Downloading NGINX sources
   register: nginx_source
   ansible.builtin.get_url:
@@ -43,8 +57,8 @@
 
 - name: Configuring NGINX source with custom modules
   ansible.builtin.shell: "./configure --prefix=/usr --conf-path=/etc/nginx/nginx.conf.j2 --modules-path=/etc/nginx/modules --error-log-path=/var/log/nginx/error.log \
-                --pid-path=/var/run/nginx.pid --user=nginx --group=nginx --build=nginx20 --builddir=/usr/local \
-                --with-pcre --with-threads --with-file-aio --with-http_ssl_module --with-http_v2_module"
+    --pid-path=/var/run/nginx.pid --user={{ user }} --group={{ user }} --build=nginx20 --builddir=/usr/local \
+    --with-pcre --with-threads --with-file-aio --with-http_ssl_module --with-http_v2_module"
   args:
     chdir: "{{ nginx_source_unpack.dest }}/nginx-{{ nginx_ver }}"
   when: nginx_source_unpack.changed
@@ -86,6 +100,6 @@
   ansible.builtin.copy:
     src: nginx.service
     dest: /usr/lib/systemd/system/nginx.service
-    owner: root
-    group: root
-    mode: 0755
+    #owner: root
+    #group: root
+    #mode: 0755
