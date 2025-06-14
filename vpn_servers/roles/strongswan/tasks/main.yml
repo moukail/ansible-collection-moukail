@@ -57,18 +57,18 @@
     dest: /etc/strongswan.d/charon/eap-radius.conf
 
 - name: Creating ipsec conf file
-  template:
-    src: ipsec.conf
+  ansible.builtin.template:
+    src: ipsec.conf.j2
     dest: /etc/ipsec.conf
     mode: 0644
 
 - name: Creating ipsec secrets file
-  template:
+  ansible.builtin.copy:
     src: ipsec.secrets
     dest: /etc/ipsec.secrets
 
 - name: Installing freeRadius init script (service)
-  template:
+  ansible.builtin.copy:
     src: strongswan-starter.service
     dest: /usr/lib/systemd/system/strongswan-starter.service
     owner: root
@@ -78,7 +78,7 @@
 - include_tasks: letsencrypt.yml
 
 - name: Restart strongSwan
-  systemd:
+  ansible.builtin.systemd:
     name: strongswan-starter.service
     daemon_reload: yes
     state: restarted
