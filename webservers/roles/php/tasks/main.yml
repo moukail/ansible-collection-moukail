@@ -1,8 +1,8 @@
 ---
 - include_tasks: redhat.yml
-  when: ansible_os_family == 'RedHat'
+  when: ansible_facts['ansible_os_family'] == 'RedHat'
 - include_tasks: debian.yml
-  when: ansible_os_family == 'Debian'
+  when: ansible_facts['ansible_os_family'] == 'Debian'
 
 - name: Ensure group "{{ user }}" exists
   ansible.builtin.group:

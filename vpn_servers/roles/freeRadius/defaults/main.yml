@@ -1,6 +1,6 @@
 ---
-freeradius_ver: 3.2.7
-freeradius_tarball_url: ftp://ftp.freeradius.org/pub/freeradius/freeradius-server-{{ freeradius_ver }}.tar.gz
+freeradius_ver: 3.2.8
+freeradius_tarball_url: https://www.freeradius.org/ftp/pub/freeradius/freeradius-server-{{ freeradius_ver }}.tar.gz
 db_type: mysql # mariadb #
 db_login_host: db.moukail.nl
 radius_db_name: radius
